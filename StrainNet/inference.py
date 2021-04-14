@@ -11,6 +11,7 @@ from imageio import imread, imwrite
 import numpy as np
 
 
+
 model_names = sorted(name for name in models.__dict__
                      if name.islower() and not name.startswith("__"))
 
@@ -29,14 +30,15 @@ parser.add_argument("--img-exts", metavar='EXT', default=['tif','png', 'jpg', 'b
                     help="images extensions to glob")
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-
+print('Running on:', device)
 
 @torch.no_grad()
 def main():
     global args, save_path
     args = parser.parse_args()
-
+    print(args.data)
     data_dir = Path(args.data)
+
     print("=> fetching img pairs in '{}'".format(args.data))
     if args.output is None:
         save_path = data_dir/'flow'
@@ -51,16 +53,20 @@ def main():
 
     img_pairs = []
     for ext in args.img_exts:
+        #print('ext', format(ext))
         test_files = data_dir.files('*1.{}'.format(ext))
         for file in test_files:
-            img_pair = file.parent / (file.namebase[:-1] + '2.{}'.format(ext))
+            #print('file', file)
+            #print('file.namebase', file.namebase)
+            #img_pair = file.parent / (file.namebase[:-1] + '2.{}'.format(ext))
+            img_pair = file.parent / (file.basename()[:-5] + '2.{}'.format(ext))
             if img_pair.isfile():
                 img_pairs.append([file, img_pair])
 
-    print('{} samples found'.format(len(img_pairs)))
+    print('{} sample/s found'.format(len(img_pairs)))
     
     # create model
-    network_data = torch.load(args.pretrained)
+    network_data = torch.load(args.pretrained, map_location=device)
     print("=> using pre-trained model '{}'".format(args.arch))
     model = models.__dict__[args.arch](network_data).to(device)
     model.eval()
@@ -99,7 +105,7 @@ def main():
         input_var = input_var.to(device)
         output = model(input_var)
         if args.arch == 'StrainNet_h':
-            output = output = torch.nn.functional.interpolate(input=output, scale_factor=2, mode='bilinear')
+            output = torch.nn.functional.interpolate(input=output, scale_factor=2, mode='bilinear')
  
         
         output_to_write = output.data.cpu()
@@ -109,10 +115,12 @@ def main():
         disp_y = output_to_write[0,1,:,:]
         disp_y = - disp_y * args.div_flow + 1
         
-        filenamex = save_path/'{}{}'.format(img1_file.namebase[:-1], '_disp_x')
-        filenamey = save_path/'{}{}'.format(img1_file.namebase[:-1], '_disp_y')        
-        np.savetxt(filenamex + '.csv', disp_x,delimiter=',')
-        np.savetxt(filenamey + '.csv', disp_y,delimiter=',')
+        #filenamex = save_path/'{}{}'.format(img1_file.namebase[:-1], '_disp_x')
+        #filenamey = save_path/'{}{}'.format(img1_file.namebase[:-1], '_disp_y')
+        filenamex = save_path/'{}{}'.format(img1_file.basename()[:-5], '_disp_x')
+        filenamey = save_path/'{}{}'.format(img1_file.basename()[:-5], '_disp_y')
+        np.savetxt(filenamex + '.csv', disp_x, delimiter=',')
+        np.savetxt(filenamey + '.csv', disp_y, delimiter=',')
         
 if __name__ == '__main__':
     main()

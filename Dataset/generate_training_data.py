@@ -5,10 +5,21 @@ from scipy.ndimage import map_coordinates
 import os
 import pandas as pd
 import csv
+import speckle_quality as sq
 
 import matplotlib.pyplot as plt
 
-ifIntensity = 1     ### Set to 0 if only want displacement, 1 if want to apply intensity
+ifIntensity = 1  # Set to 0 if only want displacement, 1 if want to apply intensity
+displacement = 3  # max pixel displacement
+
+SubsetSize = 256  # must be even
+imgSize = 10  # number of images to generate
+n = 10  # number of iterations for each image
+
+# surface parameters
+sigma = 10
+l0 = 4
+dx = 6
 
 # Create directories
 try:
@@ -19,16 +30,16 @@ except OSError as error:
 # List of file names
 files = []
 
-# Create a random pattern
-SubsetSize = 256 # must be even
-imgSize = 5
-n = 2
-
 for img in range(1, imgSize + 1):
-    I, _, _, _, _ = generate_surface.rough_surface(sigma=25, l0=3, dx=1, m=np.max([SubsetSize, SubsetSize]),
+    # Create a random pattern
+    I, _, _, _, _ = generate_surface.rough_surface(sigma=sigma, l0=l0, dx=dx, m=np.max([SubsetSize, SubsetSize]),
                                                    type='gaussian')
     I += np.abs(np.min(I))  # Convert to non-negative values (i.e., potential intensity maps)
     I_interp = np.pad(I, 2)        # pad 0s
+
+    # Output speckle information
+    # speckle_size = sq.autocorrelation(I, dx, report=True)['FWHM']
+    # sq.visibility_std(I, int(speckle_size * 3), report=True)
 
     # Mesh of data
     xp = np.arange(0, SubsetSize)+2
@@ -39,11 +50,8 @@ for img in range(1, imgSize + 1):
 
     for l in range(1, n + 1):
         # Random displacement
-        f = np.random.rand(SubsetSize//8+4, SubsetSize//8+4) * 2 - 1
-        g = np.random.rand(SubsetSize//8+4, SubsetSize//8+4) * 2 - 1
-
-        # Random intensity
-        h = (np.random.rand(SubsetSize, SubsetSize) + 1) / 2
+        f = np.random.rand(SubsetSize//8+4, SubsetSize//8+4) * 2 * displacement - displacement
+        g = np.random.rand(SubsetSize//8+4, SubsetSize//8+4) * 2 * displacement - displacement
 
         # Interpolate random displacement map
         interp_x = interp2d(xxp0, xxp0, f)
@@ -60,7 +68,6 @@ for img in range(1, imgSize + 1):
         disp_y[:, 0:2] = 0
         disp_y[SubsetSize - 2: SubsetSize - 1, :] = 0
         disp_y[:, SubsetSize - 2: SubsetSize - 1] = 0
-
 
         # Create displaced pattern by interpolation/re-mapping
         x = (Xp_subset.transpose() - disp_x).flatten()
@@ -81,6 +88,8 @@ for img in range(1, imgSize + 1):
 
         # if applying intensity
         if ifIntensity:
+            # Random intensity
+            h = (np.random.rand(SubsetSize, SubsetSize) + 1) / 2
             I_int = np.multiply(I_disp, h)
             name_int = 'Int' + str(img) + '_' + str(l) + '.csv'
             pd.DataFrame(I_int).to_csv(path + name_int, header=None, index=None)

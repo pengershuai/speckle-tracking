@@ -12,14 +12,15 @@ import matplotlib.pyplot as plt
 ifIntensity = 1  # Set to 0 if only want displacement, 1 if want to apply intensity
 displacement = 3  # max pixel displacement
 
-SubsetSize = 256  # must be even
-imgSize = 10  # number of images to generate
+# SubsetSize = 256  # must be even
+SubsetSize = 40
+imgSize = 50  # number of images to generate
 n = 10  # number of iterations for each image
 
 # surface parameters
 sigma = 10
-l0 = 4
-dx = 6
+l0 = 2
+dx = 1
 
 # Create directories
 try:

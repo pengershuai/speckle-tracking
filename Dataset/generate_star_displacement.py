@@ -7,9 +7,9 @@ def star_displacement(n, m, amplitude=0.5):
     """
     Create a star pattern displacement field
     :param n: int
-        pixels in x
+        pixels in x (vertical)
     :param m: int
-        pixels in y
+        pixels in y (horizontal)
     :param amplitude: float
         sinus wave amplitude, i.e., maximum displacement
     :return: 2d (nxm) array of float
@@ -37,6 +37,7 @@ def star_displacement(n, m, amplitude=0.5):
     #plt.imshow(data, cmap='RdBu_r'), plt.colorbar(), plt.show()
 
     return data
+
 
 if __name__ == '__main__':
     d = star_displacement(500, 2000, 1)
